@@ -1,0 +1,253 @@
+<!-- [STUDIO:"Transform Message"]<?xml version="1.0" encoding="UTF-8"?> [STUDIO] -->
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+    <apikit:config name="paygov-experience-api-config" api="paygov-experience-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" >
+		<apikit:flow-mappings >
+			<apikit:flow-mapping resource="/payments/payment/{agencyTrackingId}" action="get" flow-ref="GetPaymentDetails" />
+			<apikit:flow-mapping resource="/payments/payment" action="post" content-type="application/json" flow-ref="PlasticCardPaymentAuthorization" />
+			<apikit:flow-mapping resource="/payments/payment-auth/{agencyTrackingId}/capture" action="post" content-type="application/json" flow-ref="PlasticCardPaymentForce" />
+		</apikit:flow-mappings>
+	</apikit:config>
+    <flow name="paygov-experience-api-main">
+        <http:listener path="/api/*" config-ref="Http_Listener_Config">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="paygov-experience-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="paygov-experience-api-console">
+        <http:listener path="/console/*" config-ref="Http_Listener_Config">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="paygov-experience-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="GetPaymentDetails">
+        <ee:transform doc:name="Create agencyTrackingId variable">
+            <ee:variables>
+                <ee:set-variable variableName="agencyTrackingId"><![CDATA[/* 
+ * This component creates a variable (var.agencyTrackingId),
+ * this variable represents the input for the pay.gov 
+ * GET Payment Details endpoints
+ * 
+ */
+attributes.uriParams.'agencyTrackingId'
+
+]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Create Pay.gov Query Payload" doc:id="7ca06af7-e036-4e3d-8efd-21ce3178208c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	/* TODO
+	 * Here you will map the fields from the experience API
+	 * namely, agencyId, applicationId & agencyTrackingId, to 
+	 * the approprite elements in the XML payload required
+	 * for the TCS Single Query Web Service
+	 */
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<wsc:consume doc:name="Pay.gov Single Query Web Service Callout" doc:id="173ad436-5f98-41aa-823e-74b28bb92021" config-ref="Pay.gov_Single_Query_Webservice_Consumer" operation="${paygov.tcs.singlequery.operation}"/>
+		<ee:transform doc:name="Transform to JSON Data Model" doc:id="96d69fb6-e3d4-4a2c-a7c7-ff435b643296" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	/*
+	 * Here you will map the output from the pay.gov
+	 * Single Query Web Service to our API's defined
+	 * output
+	 */
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+    <flow name="PlasticCardPaymentAuthorization">
+        <ee:transform doc:name="Create Pay.Gov Card Auth Payload" doc:id="6e930287-d8f8-49ad-bbe3-278858c1315b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	/* TODO
+	 * Here you will map the fields from the experience API
+	 * to the appropriate elements in the XML payload required
+	 * for the Plastic Card Authorization operations
+	 * in the TCS Plastic Card Web Service
+	 */
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<wsc:consume operation="${paygov.tcs.plasticcard.auth.operation}" doc:name="Pay.gov Plastic Card Web Service Callout" doc:id="8c418a28-906e-4345-bbf1-424a98ff4125" config-ref="Pay.gov_Single_Query_Webservice_Consumer" />
+		<ee:transform doc:name="Transform to JSON Data Model" doc:id="09adc5e6-864e-4296-85c3-54e4ffaf99ba" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	/*
+	 * Here you will map the output from the pay.gov
+	 * Plastic Card Web Service to our API's defined
+	 * output
+	 */
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+    <flow name="PlasticCardPaymentForce">
+        <ee:transform doc:name="Create agencyTrackingId variable">
+            <ee:variables>
+                <ee:set-variable variableName="agencyTrackingId"><![CDATA[/* 
+ * This component creates a variable (var.agencyTrackingId),
+ * this variable represents the input for the pay.gov 
+ * GET Payment Details endpoints
+ * 
+ */
+attributes.uriParams.'agencyTrackingId']]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<ee:transform doc:name="Create Pay.Gov Card Force Payload" doc:id="85e614ac-cf73-4b34-9381-96ef3cfa1827">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	/* TODO
+	 * Here you will map the fields from the experience API
+	 * to the appropriate elements in the XML payload required
+	 * for the Plastic Card Authorization operations
+	 * in the TCS Plastic Card Web Service
+	 */
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<wsc:consume operation="${paygov.tcs.plasticcard.force.operation}" doc:name="Pay.gov Plastic Card Web Service Callout" doc:id="36d89367-9188-4397-9495-fd498d7dc1e5" config-ref="Pay.gov_Single_Query_Webservice_Consumer" />
+		<ee:transform doc:name="Transform to JSON Data Model" doc:id="d871191b-4b01-42db-9b7b-3beb55d37c83" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	/*
+	 * Here you will map the output from the pay.gov
+	 * Plastic Card Web Service to our API's defined
+	 * output
+	 */
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+</mule>
