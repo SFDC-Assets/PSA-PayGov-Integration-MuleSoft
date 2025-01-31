@@ -1,9 +1,9 @@
 ![Public Sector Accelerators logo](/docs/Logo_GPSAccelerators_v01.png)
 
 # Pay.gov Integration
-**This Accelerator aims to provide a quick-start for integrating with Pay.gov for a common set of use cases.**
+**Use this quick start from MuleSoft to collect online payments on Salesforce with the official payment platform of the U.S. Government.**
 
-Accelerator Listing: [insert url to the public listing on the Accelerator site](https://gpsaccelerators.developer.salesforce.com/) (tbd once published)
+[Accelerator Listing](https://gpsaccelerators.developer.salesforce.com/accelerator/a0wDo0000024QSqIAM/paygov-integration-with-mulesoft)
 
 ## Description
 
